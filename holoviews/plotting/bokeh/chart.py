@@ -520,9 +520,6 @@ class SpikesPlot(PathPlot, ColorbarPlot):
                 # from position and length plot options
                 for el in self.current_frame.values():
                     opts = self.lookup_options(el, 'plot').options
-                frame = self.current_frame or self.hmap.last
-                for el in frame.values():
-                    opts = self.lookup_options(element, 'plot').options
                     pos = opts.get('position', self.position)
                     length = opts.get('spike_length', self.spike_length)
                     bs.append(pos)
