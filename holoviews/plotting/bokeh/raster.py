@@ -43,6 +43,12 @@ class RasterPlot(ColorbarPlot):
                 img = img[::-1]
         dh, dw = t-b, r-l
 
+        if self.invert_axes:
+            dh, dw, l, b = dw, dh, b, l
+            if self.invert_yaxis: l = t
+            if self.invert_yaxis: b = r
+            img = np.rot90(img)
+
         mapping = dict(image='image', x='x', y='y', dw='dw', dh='dh')
         if empty:
             data = dict(image=[], x=[], y=[], dw=[], dh=[])
@@ -93,6 +99,12 @@ class RGBPlot(RasterPlot):
             img = img[::-1]
         dh, dw = t-b, r-l
 
+        if self.invert_axes:
+            dh, dw, l, b = dw, dh, b, l
+            if self.invert_yaxis: l = t
+            if self.invert_yaxis: b = r
+            img = np.rot90(img)
+
         mapping = dict(image='image', x='x', y='y', dw='dw', dh='dh')
         if empty:
             data = dict(image=[], x=[], y=[], dw=[], dh=[])
@@ -138,16 +150,18 @@ class HeatMapPlot(ColorbarPlot):
         aggregate = element.gridded
         style = self.style[self.cyclic_index]
         cmapper = self._get_colormapper(element.vdims[0], element, ranges, style)
-        if empty:
-            data = {x: [], y: [], z: []}
-        else:
-            xdim, ydim = aggregate.dimensions()[:2]
-            xvals, yvals, zvals = (aggregate.dimension_values(i) for i in range(3))
-            if xvals.dtype.kind not in 'SU':
-                xvals = [xdim.pprint_value(xv) for xv in xvals]
-            if yvals.dtype.kind not in 'SU':
-                yvals = [ydim.pprint_value(yv) for yv in yvals]
-            data = {x: xvals, y: yvals, 'zvalues': zvals}
+
+        xdim, ydim = aggregate.dimensions()[:2]
+        xvals, yvals, zvals = (aggregate.dimension_values(i) for i in range(3))
+        if xvals.dtype.kind not in 'SU':
+            xvals = [xdim.pprint_value(xv) for xv in xvals]
+        if yvals.dtype.kind not in 'SU':
+            yvals = [ydim.pprint_value(yv) for yv in yvals]
+
+        if self.invert_axes:
+            x, y = y, x
+            xvals, yvals = yvals, xvals
+        data = {x: xvals, y: yvals, 'zvalues': zvals}
 
         if any(isinstance(t, HoverTool) for t in self.state.tools):
             for vdim in element.vdims:
@@ -168,18 +182,23 @@ class QuadMeshPlot(ColorbarPlot):
 
     def get_data(self, element, ranges=None, empty=False):
         x, y, z = element.dimensions(label=True)
+        if self.invert_axes: x, y = y, x
         style = self.style[self.cyclic_index]
         cmapper = self._get_colormapper(element.vdims[0], element, ranges, style)
         if empty:
-            data = {x: [], y: [], z: [], 'height': [], 'width': []}
+            xs, ys, zvals, ws, hs = []*5
         else:
             if len(set(v.shape for v in element.data)) == 1:
                 raise SkipRendering("Bokeh QuadMeshPlot only supports rectangular meshes")
-            zvals = element.data[2].T.flatten()
             xvals = element.dimension_values(0, False)
             yvals = element.dimension_values(1, False)
             widths = np.diff(element.data[0])
             heights = np.diff(element.data[1])
+            if self.invert_axes:
+                zvals = element.data[2].flatten()
+                xvals, yvals, widths, heights = yvals, xvals, heights, widths
+            else:
+                zvals = element.data[2].T.flatten()
             xs, ys = cartesian_product([xvals, yvals], copy=True)
             ws, hs = cartesian_product([widths, heights], copy=True)
             data = {x: xs, y: ys, z: zvals, 'widths': ws, 'heights': hs}
