@@ -186,19 +186,17 @@ class QuadMeshPlot(ColorbarPlot):
         style = self.style[self.cyclic_index]
         cmapper = self._get_colormapper(element.vdims[0], element, ranges, style)
         if empty:
-            xs, ys, zvals, ws, hs = []*5
+            data = {x: [], y: [], z: [], 'height': [], 'width': []}
         else:
             if len(set(v.shape for v in element.data)) == 1:
                 raise SkipRendering("Bokeh QuadMeshPlot only supports rectangular meshes")
+            zvals = element.data[2].flatten()
             xvals = element.dimension_values(0, False)
             yvals = element.dimension_values(1, False)
             widths = np.diff(element.data[0])
             heights = np.diff(element.data[1])
             if self.invert_axes:
-                zvals = element.data[2].flatten()
                 xvals, yvals, widths, heights = yvals, xvals, heights, widths
-            else:
-                zvals = element.data[2].T.flatten()
             xs, ys = cartesian_product([xvals, yvals], copy=True)
             ws, hs = cartesian_product([widths, heights], copy=True)
             data = {x: xs, y: ys, z: zvals, 'widths': ws, 'heights': hs}
